@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Disney Resort TV - Live Wait Times</title>
+    <style>
+        :root {
+            --bg-dark: #0a1128;
+            --panel-bg: #1c2541;
+            --disney-gold: #f4d068;
+            --text-light: #ffffff;
+            --text-dim: #8da9c4;
+            --time-green: #00b4d8;
+            --welcome-blue: #2a3a5c;
+        }
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            overflow: hidden;
+        }
+        .container {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+            height: calc(100vh - 40px);
+        }
+        .sidebar {
+            background-color: var(--panel-bg);
+            border-right: 4px solid var(--disney-gold);
+            padding: 20px;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+        .resort-title h1 {
+            color: var(--disney-gold);
+            font-size: 1.6rem;
+            margin-bottom: 5px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .resort-title p {
+            color: var(--text-dim);
+            margin: 0;
+            font-size: 0.9rem;
+        }
+        
+        .welcome-box {
+            background-color: var(--welcome-blue);
+            border: 1px solid var(--disney-gold);
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 15px;
+            text-align: center;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+        .welcome-box h2 {
+            color: var(--text-light);
+            font-size: 1.1rem;
+            margin: 0;
+            letter-spacing: 0.5px;
+        }
+
+        .clock-box {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            margin: 15px 0;
+        }
+        #orlando-time {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--text-light);
+        }
+        .main-display {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+            height: 100%;
+        }
+        .park-box {
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            border-top: 4px solid var(--disney-gold);
+            height: 100%;
+            max-height: 42vh;
+        }
+        .park-header {
+            background: rgba(0,0,0,0.2);
+            padding: 12px 15px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .ride-rows {
+            padding: 10px 15px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+        .ride-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            font-size: 0.85rem;
+        }
+        .ride-name {
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 75%;
+        }
+        .ride-wait {
+            font-weight: bold;
+            color: var(--time-green);
+        }
+        .closed { color: #ff6b6b; }
+        .loading-text {
+            text-align: center;
+            color: var(--text-dim);
+            font-style: italic;
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="sidebar">
+        <div>
+            <div class="resort-title">
+                <h1>Disney Resort</h1>
+                <p>In-Room Information Display</p>
+            </div>
+            
+            <div class="welcome-box">
+                <h2>Welcome PEPPER Family</h2>
+            </div>
+
+            <div class="clock-box">
+                <p style="margin:0 0 5px 0; color:var(--disney-gold); font-size:0.8rem; text-transform:uppercase;">Orlando Local Time</p>
+                <div id="orlando-time">00:00 AM</div>
+            </div>
+        </div>
+        <div style="font-size: 0.75rem; color: var(--text-dim); line-height: 1.4;">
+            <p>• Web Server Stream: Live</p>
+            <p style="color: var(--disney-gold); font-weight: bold; margin-top:5px;">• Standby Lines Status: Active</p>
+        </div>
+    </div>
+
+    <div class="main-display">
+        <div class="park-box">
+            <div class="park-header">🏰 Magic Kingdom</div>
+            <div class="ride-rows" id="mk-list"><div class="loading-text">Connecting to live feed...</div></div>
+        </div>
+        <div class="park-box">
+            <div class="park-header">🚀 EPCOT</div>
+            <div class="ride-rows" id="ep-list"><div class="loading-text">Connecting to live feed...</div></div>
+        </div>
+        <div class="park-box">
+            <div class="park-header">🎬 Hollywood Studios</div>
+            <div class="ride-rows" id="hs-list"><div class="loading-text">Connecting to live feed...</div></div>
+        </div>
+        <div class="park-box">
+            <div class="park-header">🌳 Animal Kingdom</div>
+            <div class="ride-rows" id="ak-list"><div class="loading-text">Connecting to live feed...</div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Live unblocked public API routes targeting Walt Disney World entities
+    const parksMap = {
+        '75ea578a-adc8-4116-a54d-dccb60765ef9': 'mk-list', 
+        '47f90d1c-e727-4340-97cc-dbb922765b8d': 'ep-list', 
+        '288747d1-8b4f-4aee-98e3-74074d084b2c': 'hs-list', 
+        '1c0a0c9a-8fe9-4fbd-b0f3-23992b95fae2': 'ak-list'  
+    };
+
+    function updateOrlandoClock() {
+        // Automatically translates the display time into actual Florida local time regardless of where you open the website globally
+        const options = { timeZone: "America/New_York", hour: "2-digit", minute: "2-digit", hour12: true };
+        document.getElementById('orlando-time').innerText = new Intl.DateTimeFormat([], options).format(new Date());
+    }
+    setInterval(updateOrlandoClock, 1000);
+    updateOrlandoClock();
+
+    async function fetchLiveWaitTimes(entityId, containerId) {
+        const container = document.getElementById(containerId);
+        const url = `https://themeparks.wiki{entityId}/live`;
+
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("API Limit");
+            const data = await response.json();
+
+            if (data && data.liveData) {
+                const attractions = data.liveData.filter(item => item.entityType === "ATTRACTION");
+
+                if (attractions.length > 0) {
+                    container.innerHTML = attractions.map(ride => {
+                        const isOpen = ride.status === "OPERATING";
+                        const waitTime = (ride.queue && ride.queue.STANDBY) ? ride.queue.STANDBY.waitTime : 0;
+                        const waitText = isOpen ? `${waitTime} min` : "CLOSED";
+                        const classColor = isOpen ? "" : "closed";
+
+                        return `
+                            <div class="ride-line">
+                                <div class="ride-name">${ride.name}</div>
+                                <div class="ride-wait ${classColor}">${waitText}</div>
+                            </div>
+                        `;
+                    }).join('');
+                    return;
+                }
+            }
+            container.innerHTML = '<div class="loading-text">No rides online.</div>';
+        } catch (err) {
+            console.error(err);
+            container.innerHTML = '<div class="loading-text" style="color:#ff6b6b;">Offline (Connection Error)</div>';
+        }
+    }
+
+    function refreshDashboard() {
+        for (let entityId in parksMap) {
+            fetchLiveWaitTimes(entityId, parksMap[entityId]);
+        }
+    }
+
+    // Call instantly on server connect
+    refreshDashboard();
+    
+    // Automatically pulls direct background wait time updates from Disney servers every 3 minutes
+    setInterval(refreshDashboard, 180000);
+</script>
+
+</body>
+</html>
